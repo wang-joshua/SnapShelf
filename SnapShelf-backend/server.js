@@ -84,6 +84,7 @@ const mongoOptions = {
 let mongoClient;
 let itemsCollection;
 let groceryListCollection;
+let recipesCollection;
 
 async function connectToDatabase() {
   if (!MONGO_URI) {
@@ -95,6 +96,7 @@ async function connectToDatabase() {
   const db = mongoClient.db(MONGO_DB_NAME);
   itemsCollection = db.collection('items');
   groceryListCollection = db.collection('groceryList');
+  recipesCollection = db.collection('recipes');
   console.log(`Connected to MongoDB database "${MONGO_DB_NAME}"`);
 }
 
@@ -249,6 +251,95 @@ async function callGeminiVision(base64Image, mimeType) {
   }
 }
 
+async function callGeminiForRecipes(fridgeItems = []) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
+  }
+
+  const fridgeSummary = fridgeItems
+    .map((item) => {
+      const name = typeof item.name === 'string' ? item.name : '';
+      const qty = Number.isFinite(item.qty) ? item.qty : 0;
+      if (!name) return null;
+      return `${name} (qty ${qty})`;
+    })
+    .filter(Boolean)
+    .join(', ');
+
+  const prompt = `You are a creative chef. Based on the current fridge inventory, create 4-6 approachable recipes.
+Fridge items: ${fridgeSummary || 'none'}
+
+Return ONLY valid JSON, nothing else, using this format:
+[
+  {
+    "title": "Recipe name",
+    "description": "Short paragraph about the dish.",
+    "instructions": "Step-by-step instructions.",
+    "category": "breakfast | lunch | dinner | snack | dessert | drink",
+    "imgUrl": "https://example.com/image.jpg",
+    "ingredients": [
+      { "name": "ingredient name", "qty": 1 }
+    ]
+  }
+]
+
+Rules:
+- description must be a short paragraph.
+- imgUrl must be a URL (no base64, no data URI).
+- Ingredients must be an array with name (string) and qty (number).`;
+
+  const payload = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.6,
+      maxOutputTokens: 2048
+    }
+  };
+
+  const response = await axios.post(
+    `${GEMINI_URL}?key=${GEMINI_API_KEY}`,
+    payload,
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 60000
+    }
+  );
+
+  const parts = response.data?.candidates?.[0]?.content?.parts || [];
+  let messageContent = parts.map((part) => part?.text ?? '').join('').trim();
+  if (!messageContent && response.data?.candidates?.[0]?.content?.text) {
+    messageContent = response.data.candidates[0].content.text.trim();
+  }
+  if (!messageContent) {
+    throw new Error('Gemini returned empty recipe content');
+  }
+
+  let parsed;
+  try {
+    let jsonString = messageContent.trim();
+    jsonString = jsonString.replace(/^```(?:json)?\s*\n?/i, '');
+    jsonString = jsonString.replace(/\n?```\s*$/i, '');
+    const jsonMatch = jsonString.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonString = jsonMatch[0];
+    }
+    parsed = JSON.parse(jsonString);
+  } catch (err) {
+    console.error('Failed to parse Gemini recipe response:', messageContent);
+    throw new Error('Unable to parse recipe response from Gemini');
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('Recipe response is not an array');
+  }
+
+  return parsed;
+}
+
 async function cropItemImage(imageBuffer, bbox, imageWidth, imageHeight) {
   try {
     // bbox is [x, y, width, height] normalized 0-1
@@ -319,6 +410,15 @@ function canonicalizeName(name = '') {
   return alnum;
 }
 
+function toTitleCase(str = '') {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 function generateNameVariants(baseName = '') {
   if (!baseName) return [];
   const variants = new Set([baseName]);
@@ -331,6 +431,14 @@ function generateNameVariants(baseName = '') {
 }
 
 function normalizeItems(items = []) {
+  const capitalizeWords = (str = '') =>
+    str
+      .toLowerCase()
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+
   const safeInteger = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return 0;
@@ -339,9 +447,10 @@ function normalizeItems(items = []) {
 
   return items
     .map((item) => {
-      const name = typeof item.name === 'string' ? item.name.trim() : '';
-      const canonicalName = canonicalizeName(name);
-      if (!name || !canonicalName) {
+      const rawName = typeof item.name === 'string' ? item.name.trim() : '';
+      const canonicalName = canonicalizeName(rawName);
+      const displayName = capitalizeWords(rawName);
+      if (!rawName || !canonicalName) {
         return null;
       }
 
@@ -360,7 +469,7 @@ function normalizeItems(items = []) {
       }
 
       return {
-        name,
+        name: displayName,
         canonicalName,
         qty,
         expiresInDays,
@@ -370,6 +479,30 @@ function normalizeItems(items = []) {
       };
     })
     .filter(Boolean);
+}
+
+function sanitizeRecipe(doc = {}) {
+  const description = typeof doc.description === 'string' ? doc.description : '';
+  const imgUrl = typeof doc.imgUrl === 'string' ? doc.imgUrl : '';
+  const title = typeof doc.title === 'string' && doc.title.trim() ? doc.title.trim() : 'Untitled Recipe';
+  const category = typeof doc.category === 'string' ? doc.category : '';
+  const instructions = typeof doc.instructions === 'string' ? doc.instructions : '';
+  const ingredients = Array.isArray(doc.ingredients)
+    ? doc.ingredients.map((ing) => ({
+        name: typeof ing?.name === 'string' ? ing.name : '',
+        qty: Number.isFinite(ing?.qty) ? ing.qty : 0
+      }))
+    : [];
+
+  return {
+    ...doc,
+    title,
+    category,
+    description,
+    instructions,
+    imgUrl,
+    ingredients
+  };
 }
 
 app.get('/', (_req, res) => {
@@ -383,7 +516,18 @@ app.get('/fridge-items', async (_req, res) => {
     }
 
     const items = await itemsCollection.find({}).sort({ detectedAt: -1 }).toArray();
-    res.json(items);
+    const capitalizeWords = (str = '') =>
+      str
+        .toLowerCase()
+        .split(' ')
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+    const formatted = items.map((item) => ({
+      ...item,
+      name: capitalizeWords(item.name || '')
+    }));
+    res.json(formatted);
   } catch (error) {
     console.error('Failed to fetch fridge items:', error.message);
     res.status(500).json({ error: 'Unable to fetch fridge items' });
@@ -399,6 +543,7 @@ app.post('/grocery/add-item', async (req, res) => {
 
     const { name, qtyNeeded, category } = req.body || {};
     const trimmedName = typeof name === 'string' ? name.trim() : '';
+    const displayName = toTitleCase(trimmedName);
     const qtyValue = Number(qtyNeeded);
 
     if (!trimmedName) {
@@ -412,7 +557,7 @@ app.post('/grocery/add-item', async (req, res) => {
     }
 
     const doc = {
-      name: trimmedName,
+      name: displayName,
       qtyNeeded: Math.round(qtyValue),
       category: (category && category.trim()) || 'other',
       createdAt: new Date()
@@ -433,7 +578,11 @@ app.get('/grocery/list', async (_req, res) => {
       return res.status(503).json({ error: 'Database connection not ready' });
     }
     const list = await groceryListCollection.find({}).sort({ createdAt: -1 }).toArray();
-    res.json(list);
+    const formatted = list.map((item) => ({
+      ...item,
+      name: toTitleCase(item.name || '')
+    }));
+    res.json(formatted);
   } catch (error) {
     console.error('Failed to fetch grocery list:', error.message);
     res.status(500).json({ error: error.message || 'Failed to fetch grocery list' });
@@ -452,7 +601,11 @@ app.delete('/grocery/item/:id', async (req, res) => {
 
     await groceryListCollection.deleteOne({ _id: new ObjectId(id) });
     const list = await groceryListCollection.find({}).sort({ createdAt: -1 }).toArray();
-    res.json({ status: 'ok', list });
+    const formatted = list.map((item) => ({
+      ...item,
+      name: toTitleCase(item.name || '')
+    }));
+    res.json({ status: 'ok', list: formatted });
   } catch (error) {
     console.error('Failed to delete grocery item:', error.message);
     res.status(500).json({ error: error.message || 'Failed to delete grocery item' });
@@ -491,7 +644,7 @@ app.get('/grocery/compare', async (_req, res) => {
       const inFridge = fridgeMap[normalized] || 0;
 
       const payload = {
-        name: grocery.name,
+        name: toTitleCase(grocery.name || ''),
         qtyNeeded: needed,
         qtyInFridge: inFridge
       };
@@ -509,6 +662,156 @@ app.get('/grocery/compare', async (_req, res) => {
   } catch (error) {
     console.error('Failed to compare grocery list:', error.message);
     res.status(500).json({ error: error.message || 'Failed to compare grocery list' });
+  }
+});
+
+// Recipe routes
+app.get('/recipes/all', async (_req, res) => {
+  try {
+    if (!recipesCollection) {
+      return res.status(503).json({ error: 'Database connection not ready' });
+    }
+    const recipes = await recipesCollection.find({}).sort({ createdAt: -1 }).toArray();
+    const sanitized = recipes.map((r) => sanitizeRecipe(r));
+    res.json(sanitized);
+  } catch (error) {
+    console.error('Failed to fetch recipes:', error.message);
+    res.status(500).json({ error: error.message || 'Failed to fetch recipes' });
+  }
+});
+
+app.get('/recipes/recommend', async (_req, res) => {
+  try {
+    if (!recipesCollection || !itemsCollection) {
+      return res.status(503).json({ error: 'Database connection not ready' });
+    }
+
+    const [recipes, fridgeItems] = await Promise.all([
+      recipesCollection.find({}).toArray(),
+      itemsCollection.find({}).toArray()
+    ]);
+
+    const normalize = (str = '') => str.toLowerCase().trim();
+
+    const fridgeMap = fridgeItems.reduce((map, item) => {
+      const key = normalize(typeof item.name === 'string' ? item.name : '');
+      if (!key) return map;
+      const qty = Number.isFinite(item.qty) ? item.qty : 0;
+      map[key] = (map[key] || 0) + qty;
+      return map;
+    }, {});
+
+    const fullyMakeable = [];
+    const almostMakeable = [];
+
+    recipes.forEach((recipe) => {
+      const safeRecipe = sanitizeRecipe(recipe);
+      const missingIngredients = [];
+      const availableIngredients = [];
+
+      (safeRecipe.ingredients || []).forEach((ing) => {
+        const ingNameRaw = typeof ing.name === 'string' ? ing.name : '';
+        const ingName = normalize(ingNameRaw);
+        if (!ingName) return;
+        if (fridgeMap[ingName] !== undefined) {
+          availableIngredients.push(ingNameRaw);
+        } else {
+          const qtyNeeded = Number.isFinite(ing.qty) ? ing.qty : 1;
+          missingIngredients.push({ name: ingNameRaw, qtyNeeded });
+        }
+      });
+
+      const basePayload = {
+        title: safeRecipe.title,
+        recipeId: safeRecipe._id,
+        missingIngredients,
+        availableIngredients,
+        description: safeRecipe.description,
+        imgUrl: safeRecipe.imgUrl,
+        category: safeRecipe.category,
+        ingredients: safeRecipe.ingredients
+      };
+
+      if (missingIngredients.length === 0) {
+        fullyMakeable.push(basePayload);
+      } else if (missingIngredients.length <= 2) {
+        almostMakeable.push(basePayload);
+      }
+    });
+
+    res.json({ fullyMakeable, almostMakeable });
+  } catch (error) {
+    console.error('Failed to recommend recipes:', error.message);
+    res.status(500).json({ error: error.message || 'Failed to recommend recipes' });
+  }
+});
+
+app.post('/recipes/add-missing-to-grocery', async (req, res) => {
+  try {
+    if (!groceryListCollection) {
+      return res.status(503).json({ error: 'Database connection not ready' });
+    }
+
+    const { recipeId, missingIngredients } = req.body || {};
+    if (!recipeId) {
+      return res.status(400).json({ error: 'recipeId is required' });
+    }
+    if (!Array.isArray(missingIngredients)) {
+      return res.status(400).json({ error: 'missingIngredients must be an array' });
+    }
+
+    const inserts = [];
+    for (const item of missingIngredients) {
+      const name = typeof item?.name === 'string' ? item.name.trim() : '';
+      const qtyNeeded = Number(item?.qtyNeeded);
+      if (!name || !Number.isFinite(qtyNeeded) || qtyNeeded <= 0) {
+        continue;
+      }
+
+      inserts.push({
+        name: toTitleCase(name),
+        qtyNeeded: Math.round(qtyNeeded),
+        category: (item.category && typeof item.category === 'string' && item.category.trim()) || 'other',
+        createdAt: new Date()
+      });
+    }
+
+    if (inserts.length) {
+      await groceryListCollection.insertMany(inserts);
+    }
+
+    res.json({ status: 'ok', inserted: inserts.length });
+  } catch (error) {
+    console.error('Failed to add missing ingredients to grocery:', error.message);
+    res.status(500).json({ error: error.message || 'Failed to add missing ingredients to grocery' });
+  }
+});
+
+app.post('/recipes/generate', async (_req, res) => {
+  try {
+    if (!recipesCollection || !itemsCollection) {
+      return res.status(503).json({ error: 'Database connection not ready' });
+    }
+
+    const fridgeItems = await itemsCollection.find({}).toArray();
+    const generated = await callGeminiForRecipes(fridgeItems);
+
+    const now = new Date();
+    for (const recipe of generated) {
+      const sanitized = sanitizeRecipe({ ...recipe, createdAt: now });
+      const { createdAt, ...rest } = sanitized;
+      await recipesCollection.updateOne(
+        { title: sanitized.title },
+        { $set: rest, $setOnInsert: { createdAt: createdAt || now } },
+        { upsert: true }
+      );
+    }
+
+    const recipes = await recipesCollection.find({}).sort({ createdAt: -1 }).toArray();
+    res.json(recipes.map((r) => sanitizeRecipe(r)));
+  } catch (error) {
+    console.error('Failed to generate recipes:', error.message);
+    res.status(500).json({ error: error.message || 'Failed to generate recipes' });
   }
 });
 

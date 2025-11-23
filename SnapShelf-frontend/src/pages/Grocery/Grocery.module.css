@@ -1,7 +1,8 @@
 .container {
-  max-width: 600px;
+  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
-  padding: 16px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -52,8 +53,9 @@
 
 .grocery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  width: 100%;
 }
 
 .card {

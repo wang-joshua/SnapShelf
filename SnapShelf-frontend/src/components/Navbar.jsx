@@ -41,6 +41,12 @@ function Navbar() {
           >
             Compare
           </NavLink>
+          <NavLink
+            to="/recipes"
+            className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
+          >
+            Recipes
+          </NavLink>
         </nav>
       </div>
     </header>

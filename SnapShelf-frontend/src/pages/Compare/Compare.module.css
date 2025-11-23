@@ -1,7 +1,8 @@
 .container {
-  max-width: 900px;
+  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
-  padding: 16px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -44,8 +45,9 @@
 
 .compare-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+  width: 100%;
 }
 
 .card {

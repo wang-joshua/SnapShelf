@@ -177,11 +177,11 @@ function Inventory() {
             </div>
           </div>
 
-          {filteredAndSortedItems.length === 0 ? (
-            <p className={styles.emptyState}>No items found in this category.</p>
-          ) : (
-            <div className={styles.grid}>
-              {filteredAndSortedItems.map((item) => {
+              {filteredAndSortedItems.length === 0 ? (
+                <p className={styles.emptyState}>No items found in this category.</p>
+              ) : (
+                <div className={styles.inventoryGrid}>
+                  {filteredAndSortedItems.map((item) => {
                 const categoryStyle = getCategoryStyle(item.category);
                 const previewImage = item.fullImageData || item.imageData;
                 const bbox = Array.isArray(item.bbox) && item.bbox.length === 4 ? item.bbox : null;

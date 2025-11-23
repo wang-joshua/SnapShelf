@@ -2,7 +2,7 @@
   position: relative;
   min-height: calc(100vh - 200px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 32px 16px;
   overflow: hidden;
@@ -27,7 +27,7 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 500px;
+  max-width: 1400px;
   margin: 0 auto;
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
@@ -145,4 +145,3 @@
     transform: rotate(360deg);
   }
 }
-
