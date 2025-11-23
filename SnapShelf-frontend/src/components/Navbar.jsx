@@ -5,7 +5,17 @@ function Navbar() {
   return (
     <header className={styles.navbar}>
       <div className={styles.inner}>
-        <div className={styles.brand}>SnapShelf</div>
+        <div className={styles.brandContainer}>
+          <img 
+            src="/assets/images/logo.png" 
+            alt="SnapShelf Logo" 
+            className={styles.logo}
+            onError={(e) => {
+              // Hide logo if image doesn't exist
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
         <nav className={styles.links}>
           <NavLink
             to="/"

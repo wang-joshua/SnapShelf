@@ -1,6 +1,6 @@
 .navbar {
   width: 100%;
-  background-color: #0f172a;
+  background-color: #b2bdd6;
   color: #f8fafc;
   box-shadow: 0 2px 12px rgba(15, 23, 42, 0.1);
 }
@@ -14,6 +14,21 @@
   justify-content: space-between;
 }
 
+.brandContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  overflow: visible;
+}
+
+.logo {
+  height: 85px;
+  width: auto;
+  object-fit: contain;
+  max-height: 100%;
+}
+
 .brand {
   font-size: 1.2rem;
   font-weight: 600;
@@ -25,7 +40,7 @@
 }
 
 .link {
-  color: #cbd5f5;
+  color: #2f4692;
   text-decoration: none;
   font-weight: 500;
   padding: 6px 10px;
