@@ -21,13 +21,25 @@ function Navbar() {
             to="/snap"
             className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
           >
-            Snap a Pic
+            Scan Fridge
           </NavLink>
           <NavLink
             to="/inventory"
             className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
           >
             Inventory
+          </NavLink>
+          <NavLink
+            to="/grocery"
+            className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
+          >
+            Grocery List
+          </NavLink>
+          <NavLink
+            to="/compare"
+            className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
+          >
+            Compare
           </NavLink>
         </nav>
       </div>

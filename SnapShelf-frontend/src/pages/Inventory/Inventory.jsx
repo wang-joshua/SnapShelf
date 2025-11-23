@@ -43,6 +43,8 @@ function Inventory() {
   const [error, setError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('name'); // 'name', 'category', 'expiresInDays', 'qty'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [hoveredItem, setHoveredItem] = useState(null);
 
   const loadItems = useCallback(async () => {
     try {
@@ -73,6 +75,15 @@ function Inventory() {
   const filteredAndSortedItems = useMemo(() => {
     let filtered = items;
 
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(item => 
+        (item.name || '').toLowerCase().includes(query) ||
+        (item.category || 'snacks').toLowerCase().includes(query)
+      );
+    }
+
     // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(item => (item.category || 'snacks') === selectedCategory);
@@ -95,7 +106,7 @@ function Inventory() {
     });
 
     return sorted;
-  }, [items, selectedCategory, sortBy]);
+  }, [items, selectedCategory, sortBy, searchQuery]);
 
   return (
     <div className={styles.pageContainer}>
@@ -122,6 +133,17 @@ function Inventory() {
         <p className={styles.emptyState}>No items detected yet. Scan your fridge to get started.</p>
       ) : (
         <>
+          {/* Search Bar */}
+          <div className={styles.searchContainer}>
+            <input
+              type="text"
+              placeholder="Search items by name or category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.searchInput}
+            />
+          </div>
+
           {/* Filter and Sort Controls */}
           <div className={styles.controls}>
             <div className={styles.filterGroup}>
@@ -161,8 +183,16 @@ function Inventory() {
             <div className={styles.grid}>
               {filteredAndSortedItems.map((item) => {
                 const categoryStyle = getCategoryStyle(item.category);
+                const previewImage = item.fullImageData || item.imageData;
+                const bbox = Array.isArray(item.bbox) && item.bbox.length === 4 ? item.bbox : null;
+                const hasImage = previewImage;
                 return (
-                  <article key={item._id ?? item.name} className={styles.card}>
+                  <article 
+                    key={item._id ?? item.name} 
+                    className={styles.card}
+                    onMouseEnter={() => hasImage && setHoveredItem(item)}
+                    onMouseLeave={() => setHoveredItem(null)}
+                  >
                     <div className={styles.itemName}>{item.name}</div>
                     <div className={styles.statRow}>
                       <span className={styles.statLabel}>Quantity</span>
@@ -180,6 +210,28 @@ function Inventory() {
                     >
                       {formatCategory(item.category)}
                     </div>
+                    {hoveredItem?._id === item._id && hasImage && (
+                      <div className={styles.imageTooltip}>
+                        <div className={styles.tooltipFrame}>
+                          <img 
+                            src={previewImage} 
+                            alt={item.name}
+                            className={styles.tooltipImage}
+                          />
+                          {bbox && (
+                            <div
+                              className={styles.bboxOverlay}
+                              style={{
+                                left: `${bbox[0] * 100}%`,
+                                top: `${bbox[1] * 100}%`,
+                                width: `${bbox[2] * 100}%`,
+                                height: `${bbox[3] * 100}%`
+                              }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </article>
                 );
               })}
