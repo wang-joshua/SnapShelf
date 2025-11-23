@@ -1,11 +1,41 @@
+.pageContainer {
+  position: relative;
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px;
+  overflow: hidden;
+}
+
+.backgroundImage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url('/assets/images/inventory-background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: brightness(0.6);
+  z-index: 0;
+  pointer-events: none;
+}
+
 .container {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 32px 28px 40px;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .header {

@@ -5,7 +5,7 @@ function Navbar() {
   return (
     <header className={styles.navbar}>
       <div className={styles.inner}>
-        <div className={styles.brandContainer}>
+        <NavLink to="/" className={styles.brandContainer}>
           <img 
             src="/assets/images/logo.png" 
             alt="SnapShelf Logo" 
@@ -15,13 +15,13 @@ function Navbar() {
               e.target.style.display = 'none';
             }}
           />
-        </div>
+        </NavLink>
         <nav className={styles.links}>
           <NavLink
-            to="/"
+            to="/snap"
             className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
           >
-            Home
+            Snap a Pic
           </NavLink>
           <NavLink
             to="/inventory"

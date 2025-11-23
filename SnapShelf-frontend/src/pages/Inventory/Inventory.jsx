@@ -98,8 +98,10 @@ function Inventory() {
   }, [items, selectedCategory, sortBy]);
 
   return (
-    <section className={styles.container}>
-      <div className={styles.header}>
+    <div className={styles.pageContainer}>
+      <div className={styles.backgroundImage}></div>
+      <section className={styles.container}>
+        <div className={styles.header}>
         <div>
           <h1>Your Fridge Inventory</h1>
           <p>Every detected item lives here with estimated quantities and expiration.</p>
@@ -185,7 +187,8 @@ function Inventory() {
           )}
         </>
       )}
-    </section>
+      </section>
+    </div>
   );
 }
 

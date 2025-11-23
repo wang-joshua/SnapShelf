@@ -11,6 +11,8 @@
   display: flex;
   justify-content: center;
   padding: 32px 16px 48px;
+  position: relative;
+  z-index: 1;
 }
 
 @media (min-width: 768px) {
