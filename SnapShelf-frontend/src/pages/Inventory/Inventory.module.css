@@ -1,0 +1,135 @@
+.container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 32px 28px 40px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.header p {
+  color: #475467;
+}
+
+.refreshButton {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 600;
+  background-color: #0f172a;
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.refreshButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  border-radius: 10px;
+  padding: 12px;
+  background: linear-gradient(145deg, #f9fafb, #ffffff);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.itemName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.statLabel {
+  color: #475467;
+}
+
+.statValue {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.categoryPill {
+  margin-top: 6px;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background-color: #eef2ff;
+  color: #4338ca;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.loadingState,
+.emptyState {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 14px;
+  background-color: #f8fafc;
+  color: #475467;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.loadingSpinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0f172a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.error {
+  background-color: #fee4e2;
+  color: #b42318;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 640px) {
+  .header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .refreshButton {
+    width: auto;
+    min-width: 200px;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
