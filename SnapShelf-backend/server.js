@@ -30,7 +30,7 @@ const SUPPORTED_CATEGORIES = new Set([
   'poultry',
   'grains',
   'spices',
-  'other'
+  'chips'
 ]);
 
 const GPT_VISION_PROMPT = `You are an AI that analyzes a photo of the inside of a refrigerator.
@@ -40,7 +40,7 @@ Detect ALL food items visible in the image. For EACH item, estimate:
 - "name": the item's common name
 - "qty": rough quantity (integer estimate)
 - "expiresInDays": approximate days until expiration (integer)
-- "category": one of ["produce", "dairy", "meat", "drinks", "leftovers", "condiments", "frozen", "bakery", "snacks", "beverages", "seafood", "poultry", "grains", "spices", "other"]
+- "category": one of ["produce", "dairy", "meat", "drinks", "leftovers", "condiments", "frozen", "bakery", "snacks", "beverages", "seafood", "poultry", "grains", "spices", "chips"]
 
 Return ONLY valid JSON and NOTHING else.
 Use this EXACT format:
@@ -261,7 +261,7 @@ function normalizeItems(items = []) {
       const qty = safeInteger(item.qty);
       const expiresInDays = safeInteger(item.expiresInDays);
       const rawCategory = typeof item.category === 'string' ? item.category.toLowerCase() : '';
-      const category = SUPPORTED_CATEGORIES.has(rawCategory) ? rawCategory : 'other';
+      const category = SUPPORTED_CATEGORIES.has(rawCategory) ? rawCategory : 'snacks';
 
       return {
         name,
@@ -318,18 +318,21 @@ app.post('/analyze-fridge', upload.single('image'), async (req, res) => {
     const normalizedItems = normalizeItems(rawItems);
     console.log('Normalized items:', normalizedItems.length);
 
-    await itemsCollection.deleteMany({});
-
+    // Add new items without deleting existing ones
     const insertedItems = [];
     for (const item of normalizedItems) {
       const { insertedId } = await itemsCollection.insertOne(item);
       insertedItems.push({ ...item, _id: insertedId });
     }
 
-    console.log('Successfully saved items to database');
+    // Get total count of items in database
+    const totalCount = await itemsCollection.countDocuments({});
+    
+    console.log(`Successfully added ${insertedItems.length} new items to database. Total items: ${totalCount}`);
     res.json({
       status: 'ok',
-      items: insertedItems
+      items: insertedItems,
+      totalItems: totalCount
     });
   } catch (error) {
     console.error('Failed to analyze fridge:', {

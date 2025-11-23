@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState, useMemo } from 'react';
 import { fetchItems } from '../../api/fridge.js';
 import styles from './Inventory.module.css';
 
-const formatCategory = (value = 'other') => {
-  if (!value) return 'Other';
+const formatCategory = (value = 'snacks') => {
+  if (!value) return 'Snacks';
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
@@ -23,12 +23,12 @@ const CATEGORY_COLORS = {
   poultry: { bg: '#fee2e2', color: '#7f1d1d', border: '#f87171' },
   grains: { bg: '#fef3c7', color: '#78350f', border: '#fbbf24' },
   spices: { bg: '#f3e8ff', color: '#581c87', border: '#9333ea' },
-  other: { bg: '#f1f5f9', color: '#475569', border: '#94a3b8' }
+  chips: { bg: '#fff7ed', color: '#9a3412', border: '#ea580c' }
 };
 
 const getCategoryStyle = (category) => {
-  const cat = (category || 'other').toLowerCase();
-  const colors = CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
+  const cat = (category || 'snacks').toLowerCase();
+  const colors = CATEGORY_COLORS[cat] || CATEGORY_COLORS.snacks;
   return {
     backgroundColor: colors.bg,
     color: colors.color,
@@ -65,7 +65,7 @@ function Inventory() {
 
   // Get unique categories from items
   const categories = useMemo(() => {
-    const cats = new Set(items.map(item => item.category || 'other'));
+    const cats = new Set(items.map(item => item.category || 'snacks'));
     return ['all', ...Array.from(cats).sort()];
   }, [items]);
 
@@ -75,7 +75,7 @@ function Inventory() {
 
     // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(item => (item.category || 'other') === selectedCategory);
+      filtered = filtered.filter(item => (item.category || 'snacks') === selectedCategory);
     }
 
     // Sort items
@@ -84,7 +84,7 @@ function Inventory() {
         case 'name':
           return (a.name || '').localeCompare(b.name || '');
         case 'category':
-          return (a.category || 'other').localeCompare(b.category || 'other');
+          return (a.category || 'snacks').localeCompare(b.category || 'snacks');
         case 'expiresInDays':
           return (a.expiresInDays || 999) - (b.expiresInDays || 999);
         case 'qty':
