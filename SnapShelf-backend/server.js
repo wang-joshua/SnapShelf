@@ -8,10 +8,11 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 dotenv.config();
 
 const PORT = process.env.PORT || 4000;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MONGO_URI = process.env.MONGO_URI;
 const MONGO_DB_NAME = process.env.MONGO_DB_NAME || 'snapshelf';
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const GEMINI_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const SUPPORTED_CATEGORIES = new Set([
   'produce',
   'dairy',
@@ -81,48 +82,52 @@ async function connectToDatabase() {
   console.log(`Connected to MongoDB database "${MONGO_DB_NAME}"`);
 }
 
-async function callOpenAiVision(base64Image, mimeType) {
-  if (!OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is required');
+async function callGeminiVision(base64Image, mimeType) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
   }
 
   const payload = {
-    model: 'gpt-4o-mini',
-    messages: [
+    contents: [
       {
-        role: 'user',
-        content: [
-          { type: 'text', text: GPT_VISION_PROMPT },
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:${mimeType};base64,${base64Image}`
-            }
-          }
+        parts: [
+          { text: GPT_VISION_PROMPT },
+          { inlineData: { mimeType, data: base64Image } }
         ]
       }
     ],
-    max_tokens: 800,
-    temperature: 0.2,
-    response_format: { type: 'json_object' }
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 800
+    }
   };
 
-  const response = await axios.post(OPENAI_URL, payload, {
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    timeout: 60000
-  });
+  const response = await axios.post(
+    `${GEMINI_URL}?key=${GEMINI_API_KEY}`,
+    payload,
+    {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 60000
+    }
+  );
 
-  let messageContent = response.data?.choices?.[0]?.message?.content;
-
-  if (Array.isArray(messageContent)) {
-    messageContent = messageContent.map((part) => part?.text ?? '').join('').trim();
+  const candidates = response.data?.candidates || [];
+  if (!candidates.length) {
+    console.error('Gemini returned no candidates', response.data);
+    throw new Error('Gemini returned an empty response');
   }
 
-  if (!messageContent || typeof messageContent !== 'string') {
-    throw new Error('OpenAI returned an empty response');
+  const parts = candidates?.[0]?.content?.parts || [];
+  const messageContent = parts
+    .map((part) => part?.text ?? '')
+    .join('')
+    .trim();
+
+  if (!messageContent) {
+    console.error('Gemini returned empty content parts', response.data);
+    throw new Error('Gemini returned an empty response');
   }
 
   let parsed;
@@ -197,7 +202,7 @@ app.post('/analyze-fridge', upload.single('image'), async (req, res) => {
   try {
     const mimeType = req.file.mimetype || 'image/jpeg';
     const base64Image = req.file.buffer.toString('base64');
-    const rawItems = await callOpenAiVision(base64Image, mimeType);
+    const rawItems = await callGeminiVision(base64Image, mimeType);
     const normalizedItems = normalizeItems(rawItems);
 
     await itemsCollection.deleteMany({});
