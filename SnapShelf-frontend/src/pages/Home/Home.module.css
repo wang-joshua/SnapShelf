@@ -1,0 +1,117 @@
+.wrapper {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+  text-align: center;
+}
+
+.subtitle {
+  margin-top: 12px;
+  color: #475467;
+}
+
+.form {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.label {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.fileInput {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5f5;
+  background-color: #f8fafc;
+  cursor: pointer;
+}
+
+.previewContainer {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.previewImage {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+}
+
+.error {
+  color: #b42318;
+  background-color: #fee4e2;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.primaryButton {
+  margin-top: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  background-color: #4f46e5;
+  color: #f8fafc;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primaryButton:not(:disabled):hover {
+  background-color: #4338ca;
+}
+
+.spinnerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  color: #475467;
+  font-size: 0.95rem;
+}
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4f46e5;
+  animation: spin 1s linear infinite;
+}
+
+.helperText {
+  margin-top: 28px;
+  color: #475467;
+}
+
+@media (max-width: 600px) {
+  .wrapper {
+    padding: 24px 18px;
+    border-radius: 16px;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

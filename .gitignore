@@ -1,0 +1,8 @@
+node_modules
+.env
+SnapShelf-frontend/node_modules
+SnapShelf-frontend/dist
+SnapShelf-backend/node_modules
+SnapShelf-backend/.env
+SnapShelf-backend/dist
+SnapShelf-frontend/.env
