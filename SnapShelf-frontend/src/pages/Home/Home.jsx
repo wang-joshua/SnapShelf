@@ -43,8 +43,32 @@ function Home() {
       await analyzeFridge(file);
       navigate('/inventory');
     } catch (err) {
-      const message = err?.response?.data?.error || 'Unable to analyze the fridge right now.';
+      // Extract error message with better handling
+      let message = 'Unable to analyze the fridge right now.';
+      
+      if (err?.response?.data?.error) {
+        // Backend sent a specific error message
+        message = err.response.data.error;
+      } else if (err?.message) {
+        // Error object has a message
+        message = err.message;
+      } else if (err?.response?.status) {
+        // HTTP error status
+        message = `Server error (${err.response.status}). Please try again.`;
+      }
+      
       setError(message);
+      
+      // Log detailed error for debugging
+      console.error('Error analyzing fridge:', {
+        message: err?.message,
+        response: err?.response?.data,
+        status: err?.response?.status,
+        code: err?.code,
+        isTimeout: err?.isTimeout,
+        isNetworkError: err?.isNetworkError,
+        fullError: err
+      });
     } finally {
       setIsAnalyzing(false);
     }
